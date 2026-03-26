@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   FaUser, FaLock, FaEnvelope, FaPhone, FaCalendarAlt, FaArrowLeft,
   FaHome, FaBell, FaMapMarkerAlt, FaPaperclip, FaCamera, FaEdit 
@@ -37,10 +37,15 @@ function App() {
   const [senhaCadastro, setSenhaCadastro] = useState('');
   const [confirmaSenha, setConfirmaSenha] = useState('');
 
+  // Estados do Formulário de Registro de Problema
   const [descricaoProblema, setDescricaoProblema] = useState('');
   const [endereco, setEndereco] = useState('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460');
   const [enderecoEditavel, setEnderecoEditavel] = useState(false);
-
+  
+  // Estados para o upload de arquivo
+  const [arquivo, setArquivo] = useState(null);
+  const fileInputRef = useRef(null);
+  
   function formatCPF(value) {
     let v = value.replace(/\D/g, "");
     v = v.substring(0, 11);
@@ -81,7 +86,11 @@ function App() {
     alert('Problema registrado com sucesso! A Inteligência Artificial já categorizou a sua solicitação.');
     setTelaAtual('dashboard');
     window.location.hash = 'dashboard';
+    
+    // Limpa o formulário após enviar
     setDescricaoProblema(''); 
+    setArquivo(null);
+    setEnderecoEditavel(false);
   };
 
   const Navbar = () => (
@@ -108,7 +117,6 @@ if (telaAtual === 'registrar') {
         <Navbar />
         <div className="internal-box">
           
-          {/* Adicionámos aqui o botão de Voltar idêntico ao do Cadastro */}
           <div className="header-cadastro">
             <button 
               className="btn-voltar" 
@@ -134,11 +142,35 @@ if (telaAtual === 'registrar') {
 
             <label>Agora precisamos de uma foto</label>
             <div className="file-buttons">
-              <button type="button" className="btn-outline"><FaPaperclip /> Escolher arquivo</button>
+              
+              {/* Input escondido para selecionar o arquivo */}
+              <input 
+                type="file" 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                ref={fileInputRef}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setArquivo(e.target.files[0]);
+                  }
+                }}
+              />
+
+              <button 
+                type="button" 
+                className="btn-outline" 
+                onClick={() => fileInputRef.current.click()}
+                style={{ 
+                  borderColor: arquivo ? '#16a34a' : '#d4d4d8', 
+                  color: arquivo ? '#16a34a' : '#111' 
+                }}
+              >
+                <FaPaperclip /> {arquivo ? arquivo.name : 'Escolher arquivo'}
+              </button>
+              
               <button type="button" className="btn-outline"><FaCamera /> Abrir câmera</button>
             </div>
 
-            <label>Localização obtida automaticamente</label>
             <label>Localização obtida automaticamente</label>
             <div className="input-group">
               <input 
@@ -147,14 +179,12 @@ if (telaAtual === 'registrar') {
                 onChange={(e) => setEndereco(e.target.value)}
                 readOnly={!enderecoEditavel} 
                 className="location-input" 
-                // Muda a cor do fundo sutilmente para mostrar que destravou
                 style={{ backgroundColor: enderecoEditavel ? '#d1fad0' : 'white', cursor: enderecoEditavel ? 'text' : 'default' }}
               />
               <FaEdit 
                 className="edit-icon" 
                 onClick={() => setEnderecoEditavel(!enderecoEditavel)} 
                 title="Editar endereço"
-                // Deixa o ícone verde quando está editando
                 style={{ color: enderecoEditavel ? '#16a34a' : '#111' }}
               />
             </div>
