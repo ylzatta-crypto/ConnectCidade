@@ -38,15 +38,17 @@ function App() {
   const [confirmaSenha, setConfirmaSenha] = useState('');
 
   const [descricaoProblema, setDescricaoProblema] = useState('');
+  const [endereco, setEndereco] = useState('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460');
+  const [enderecoEditavel, setEnderecoEditavel] = useState(false);
 
-  const formatCPF = (value) => {
+  function formatCPF(value) {
     let v = value.replace(/\D/g, "");
     v = v.substring(0, 11);
     if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
     else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
     else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, "$1.$2");
     return v;
-  };
+  }
 
   const formatCelular = (value) => {
     let v = value.replace(/\D/g, "");
@@ -100,11 +102,25 @@ function App() {
     </div>
   );
 
-  if (telaAtual === 'registrar') {
+if (telaAtual === 'registrar') {
     return (
       <div className="app-container">
         <Navbar />
         <div className="internal-box">
+          
+          {/* Adicionámos aqui o botão de Voltar idêntico ao do Cadastro */}
+          <div className="header-cadastro">
+            <button 
+              className="btn-voltar" 
+              onClick={() => {
+                setTelaAtual('dashboard');
+                window.location.hash = 'dashboard';
+              }}
+            >
+              <FaArrowLeft /> Voltar
+            </button>
+          </div>
+
           <h2 className="internal-title">Registrar problema</h2>
           
           <form onSubmit={handleEnviarProblema} className="form-registrar">
@@ -123,9 +139,24 @@ function App() {
             </div>
 
             <label>Localização obtida automaticamente</label>
+            <label>Localização obtida automaticamente</label>
             <div className="input-group">
-              <input type="text" value="R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460" readOnly className="location-input" />
-              <FaEdit className="edit-icon" />
+              <input 
+                type="text" 
+                value={endereco} 
+                onChange={(e) => setEndereco(e.target.value)}
+                readOnly={!enderecoEditavel} 
+                className="location-input" 
+                // Muda a cor do fundo sutilmente para mostrar que destravou
+                style={{ backgroundColor: enderecoEditavel ? '#d1fad0' : 'white', cursor: enderecoEditavel ? 'text' : 'default' }}
+              />
+              <FaEdit 
+                className="edit-icon" 
+                onClick={() => setEnderecoEditavel(!enderecoEditavel)} 
+                title="Editar endereço"
+                // Deixa o ícone verde quando está editando
+                style={{ color: enderecoEditavel ? '#16a34a' : '#111' }}
+              />
             </div>
 
             <p className="ai-notice">
@@ -251,7 +282,7 @@ function App() {
       </div>
     );
   }
-  
+
   return (
     <div className="login-container">
       <div className="login-box">

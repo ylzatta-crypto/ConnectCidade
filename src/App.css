@@ -178,9 +178,6 @@ h2 {
   color: #555;
 }
 
-/* ===================================== */
-/* TELAS INTERNAS (DASHBOARD E REGISTRAR) */
-/* ===================================== */
 .app-container { 
   width: 100%;
   min-height: 100vh; 
@@ -189,7 +186,6 @@ h2 {
   flex-direction: column;
 }
 
-/* Navbar Superior */
 .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; border-bottom: 1px solid #e4e4e7; background-color: #fff; width: 100%; }
 .nav-actions { display: flex; gap: 10px; align-items: center; }
 .nav-btn { background-color: #f4f4f5; border: 1px solid #e4e4e7; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; transition: 0.2s; }
@@ -197,13 +193,11 @@ h2 {
 .logout-btn { background-color: #111; color: white; border: none; }
 .logout-btn:hover { background-color: #333; }
 
-/* Caixa principal do App */
 .internal-box { background-color: #f4f4f5; border-radius: 16px; width: 100%; max-width: 600px; margin: 40px auto; padding: 30px; }
 .internal-title { text-align: center; margin-bottom: 20px; font-size: 24px; color: #111; }
 .text-center { text-align: center; color: #111; }
 .mt-4 { margin-top: 20px; margin-bottom: 15px; }
 
-/* Dashboard / Mapa */
 .dashboard-buttons { display: flex; flex-direction: column; gap: 10px; }
 .btn-dash-outline { background-color: transparent; border: 2px solid #16a34a; color: #111; padding: 15px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
 .btn-dash-outline:hover { background-color: #d1fad0; }
@@ -212,7 +206,6 @@ h2 {
 .map-legend { display: flex; justify-content: space-around; font-weight: bold; font-size: 14px; margin-top: 10px; color: #333;}
 .map-legend span { display: flex; align-items: center; gap: 5px; }
 
-/* Registrar Problema */
 .form-registrar { display: flex; flex-direction: column; text-align: left; }
 .form-registrar label { font-weight: bold; margin-bottom: 8px; font-size: 14px; color: #111; }
 .form-registrar textarea { width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #d4d4d8; background-color: white; margin-bottom: 20px; min-height: 120px; resize: none; font-size: 14px; outline: none; }
