@@ -42,11 +42,9 @@ function App() {
   const [endereco, setEndereco] = useState('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460');
   const [enderecoEditavel, setEnderecoEditavel] = useState(false);
   
-  // Estados para o upload de arquivo e CÂMERA (RF8)
+  // Estados para o upload de arquivo local
   const [arquivo, setArquivo] = useState(null);
   const fileInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
   
   function formatCPF(value) {
     let v = value.replace(/\D/g, "");
@@ -83,55 +81,8 @@ function App() {
     window.location.hash = '';
   };
 
-  // ==========================================
-  // FUNÇÕES DA CÂMERA (RF8)
-  // ==========================================
-  const abrirCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      setIsCameraOpen(true);
-      // Timeout rápido para garantir que o elemento video já renderizou na tela
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      }, 100);
-    } catch (err) {
-      alert("Não foi possível acessar a câmera. Verifique se você deu permissão no navegador.");
-      console.error(err);
-    }
-  };
-
-  const fecharCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-    }
-    setIsCameraOpen(false);
-  };
-
-  const tirarFoto = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Cria um canvas na memória para "desenhar" o frame atual do vídeo
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Converte o canvas em um arquivo de imagem (Blob)
-    canvas.toBlob((blob) => {
-      const file = new File([blob], "foto-camera.jpg", { type: "image/jpeg" });
-      setArquivo(file); // Salva no estado do arquivo
-      fecharCamera();   // Desliga a câmera
-    }, 'image/jpeg');
-  };
-
   const handleEnviarProblema = (e) => {
     e.preventDefault();
-    fecharCamera(); // Garante que a câmera desliga se estiver aberta
     alert('Problema registrado com sucesso! A Inteligência Artificial já categorizou a sua solicitação.');
     setTelaAtual('dashboard');
     window.location.hash = 'dashboard';
@@ -142,20 +93,52 @@ function App() {
     setEnderecoEditavel(false);
   };
 
+  // ==========================================
+  // FUNÇÃO DE NOTIFICAÇÃO PUSH (RF9)
+  // ==========================================
+  const simularNotificacaoPush = () => {
+    if (!("Notification" in window)) {
+      alert("Este navegador não suporta notificações de sistema.");
+      return;
+    }
+
+    const dispararAviso = () => {
+      new Notification("Connect Cidade - Atualização", {
+        body: "Sua solicitação #001565 (Buraco na via) foi marcada como RESOLVIDA pela prefeitura!",
+      });
+    };
+
+    if (Notification.permission === "granted") {
+      dispararAviso();
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          dispararAviso();
+        }
+      });
+    }
+  };
+
+  // ==========================================
+  // NAVBAR
+  // ==========================================
   const Navbar = () => (
     <div className="navbar">
       <h1 className="logo nav-logo" style={{ margin: 0, fontSize: '20px' }}>
         <span className="logo-icon" style={{ fontSize: '18px', padding: '4px 8px' }}>Cc</span> Connect Cidade
       </h1>
       <div className="nav-actions">
-        <button className="nav-btn" onClick={() => { fecharCamera(); setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}>
+        <button className="nav-btn" onClick={() => { setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}>
           <FaHome />
         </button>
-        <button className="nav-btn user-btn" onClick={() => { fecharCamera(); setTelaAtual('perfil'); window.location.hash = 'perfil'; }}>
+        <button className="nav-btn user-btn" onClick={() => { setTelaAtual('perfil'); window.location.hash = 'perfil'; }}>
           <FaUser /> João
         </button>
-        <button className="nav-btn"><FaBell /></button>
-        <button className="nav-btn logout-btn" onClick={() => { fecharCamera(); setTelaAtual('login'); window.location.hash = ''; }}>
+        {/* Sininho agora dispara a notificação push */}
+        <button className="nav-btn" onClick={simularNotificacaoPush} title="Ver Notificações">
+          <FaBell />
+        </button>
+        <button className="nav-btn logout-btn" onClick={() => { setTelaAtual('login'); window.location.hash = ''; }}>
           Sair
         </button>
       </div>
@@ -232,7 +215,7 @@ function App() {
   }
 
   // ==========================================
-  // TELA 4: REGISTRAR PROBLEMA COM CÂMERA (RF4 + RF8)
+  // TELA 4: REGISTRAR PROBLEMA
   // ==========================================
   if (telaAtual === 'registrar') {
     return (
@@ -244,7 +227,6 @@ function App() {
             <button 
               className="btn-voltar" 
               onClick={() => {
-                fecharCamera();
                 setTelaAtual('dashboard');
                 window.location.hash = 'dashboard';
               }}
@@ -287,31 +269,10 @@ function App() {
                 <FaPaperclip /> {arquivo ? arquivo.name : 'Escolher arquivo'}
               </button>
               
-              <button type="button" className="btn-outline" onClick={abrirCamera}>
+              <button type="button" className="btn-outline">
                 <FaCamera /> Abrir câmera
               </button>
             </div>
-
-            {/* INTERFACE DA CÂMERA EM TEMPO REAL */}
-            {isCameraOpen && (
-              <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #d4d4d8', borderRadius: '8px', backgroundColor: '#f9fafb', textAlign: 'center' }}>
-                <p style={{ fontSize: '13px', color: '#555', marginBottom: '10px' }}>Centralize o problema e clique em Capturar</p>
-                <video 
-                  ref={videoRef} 
-                  autoPlay 
-                  playsInline 
-                  style={{ width: '100%', borderRadius: '8px', backgroundColor: '#000', maxHeight: '300px', objectFit: 'cover' }}
-                ></video>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                  <button type="button" onClick={tirarFoto} className="btn-acessar" style={{ flex: 1, padding: '10px' }}>
-                    <FaCamera style={{ marginRight: '8px' }}/> Capturar Foto
-                  </button>
-                  <button type="button" onClick={fecharCamera} className="btn-outline" style={{ flex: 1, color: '#dc2626', borderColor: '#dc2626', padding: '10px' }}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
 
             <label>Localização obtida automaticamente</label>
             <div className="input-group">
