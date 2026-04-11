@@ -102,7 +102,9 @@ function App() {
         <button className="nav-btn" onClick={() => { setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}>
           <FaHome />
         </button>
-        <button className="nav-btn user-btn"><FaUser /> João</button>
+        <button className="nav-btn user-btn" onClick={() => { setTelaAtual('perfil'); window.location.hash = 'perfil'; }}>
+          <FaUser /> João
+        </button>
         <button className="nav-btn"><FaBell /></button>
         <button className="nav-btn logout-btn" onClick={() => { setTelaAtual('login'); window.location.hash = ''; }}>
           Sair
@@ -111,7 +113,73 @@ function App() {
     </div>
   );
 
-if (telaAtual === 'registrar') {
+  if (telaAtual === 'perfil') {
+    return (
+      <div className="app-container">
+        <Navbar />
+        <div className="internal-box">
+          <div className="header-cadastro">
+            <button 
+              className="btn-voltar" 
+              onClick={() => {
+                setTelaAtual('dashboard');
+                window.location.hash = 'dashboard';
+              }}
+            >
+              <FaArrowLeft /> Voltar
+            </button>
+          </div>
+
+          <h2 className="internal-title">Meu Perfil</h2>
+          
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            alert('Dados atualizados com sucesso!');
+            setTelaAtual('dashboard');
+            window.location.hash = 'dashboard';
+          }} className="form-registrar">
+            
+            <label>Nome Completo</label>
+            <div className="input-group">
+              <FaUser className="input-icon" />
+              <input type="text" defaultValue="João da Silva" required />
+            </div>
+
+            <label>E-mail</label>
+            <div className="input-group">
+              <FaEnvelope className="input-icon" />
+              <input type="email" defaultValue="joao@caxias.rs.gov.br" required />
+            </div>
+
+            <label>Celular</label>
+            <div className="input-group">
+              <FaPhone className="input-icon" />
+              <input type="text" defaultValue="(54) 99999-9999" required />
+            </div>
+
+            <div className="divider"></div>
+            <h3 style={{marginBottom: '15px', fontSize: '18px', color: '#111'}}>Trocar Senha</h3>
+
+            <label>Nova Senha</label>
+            <div className="input-group">
+              <FaLock className="input-icon" />
+              <input type="password" placeholder="Digite a nova senha" />
+            </div>
+
+            <label>Confirmar Nova Senha</label>
+            <div className="input-group">
+              <FaLock className="input-icon" />
+              <input type="password" placeholder="Confirme a nova senha" />
+            </div>
+
+            <button type="submit" className="btn-acessar" style={{marginTop: '10px'}}>Salvar Alterações</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (telaAtual === 'registrar') {
     return (
       <div className="app-container">
         <Navbar />
