@@ -376,7 +376,7 @@ function App() {
         <form onSubmit={handleLogin}>
           <div className="input-group"><FaUser className="input-icon" /><input type="text" placeholder="Digite o seu CPF" value={cpfLogin} onChange={(e) => setCpfLogin(formatCPF(e.target.value))} maxLength="14" required /></div>
           <div className="input-group"><FaLock className="input-icon" /><input type="password" placeholder="Digite a sua senha" value={senhaLogin} onChange={(e) => setSenhaLogin(e.target.value)} required /></div>
-          <div className="forgot-password"><a href="#recuperar">Esqueceu-se da senha?</a></div>
+          <div className="forgot-password"><a href="#recuperar"> Esqueceu-se da senha?</a></div>
           <button type="submit" className="btn-acessar">Acessar</button>
         </form>
         <div className="divider"></div>
