@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { 
   FaUser, FaLock, FaEnvelope, FaPhone, FaCalendarAlt, FaArrowLeft,
-  FaHome, FaBell, FaMapMarkerAlt, FaPaperclip, FaCamera, FaEdit, FaListUl, FaCheckCircle, FaClock, FaSearch, FaThumbsUp, FaExclamationTriangle
+  FaHome, FaBell, FaMapMarkerAlt, FaPaperclip, FaCamera, FaEdit, FaListUl, 
+  FaCheckCircle, FaClock, FaSearch, FaThumbsUp, FaExclamationTriangle,
+  FaUserShield, FaPlus, FaTrash
 } from 'react-icons/fa';
 
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -10,18 +12,14 @@ import L from 'leaflet';
 
 import './App.css';
 
-const createIcon = (color) => new L.Icon({
-  iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// NOVA FUNÇÃO: Gera um pin do mapa dinamicamente com qualquer cor (HEX) escolhida
+const createCustomIcon = (hexColor) => L.divIcon({
+  className: 'custom-pin',
+  html: `<svg viewBox="0 0 384 512" style="height: 35px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><path fill="${hexColor}" stroke="#ffffff" stroke-width="15" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/></svg>`,
+  iconSize: [25, 35],
+  iconAnchor: [12, 35],
+  popupAnchor: [0, -35]
 });
-
-const iconIluminacao = createIcon('red');
-const iconVia = createIcon('blue');
-const iconLixo = createIcon('gold');
 
 const minhasSolicitacoesBD = [
   { protocolo: '#001565', data: '10/04/2026', problema: 'Buraco na via principal', status: 'Resolvido', cor: '#16a34a', icon: <FaCheckCircle /> },
@@ -46,6 +44,7 @@ function App() {
   const [descricaoProblema, setDescricaoProblema] = useState('');
   const [endereco, setEndereco] = useState('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460');
   const [enderecoEditavel, setEnderecoEditavel] = useState(false);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState('');
   
   const [arquivo, setArquivo] = useState(null);
   const fileInputRef = useRef(null);
@@ -54,11 +53,24 @@ function App() {
 
   const [filtroMapa, setFiltroMapa] = useState('todos');
 
+  // Marcadores iniciais agora usam o gerador de cores dinâmicas
   const [marcadores, setMarcadores] = useState([
-    { id: 1, pos: [-29.168, -51.179], tipo: 'iluminacao', desc: 'Poste sem luz', protocolo: '#001509', icon: iconIluminacao, apoios: 12, apoiado: false },
-    { id: 2, pos: [-29.158, -51.189], tipo: 'via', desc: 'Buraco na via', protocolo: '#001565', icon: iconVia, apoios: 45, apoiado: false },
-    { id: 3, pos: [-29.178, -51.169], tipo: 'lixo', desc: 'Lixo acumulado', protocolo: '#001495', icon: iconLixo, apoios: 3, apoiado: false },
+    { id: 1, pos: [-29.168, -51.179], tipo: 'iluminacao', desc: 'Poste sem luz', protocolo: '#001509', icon: createCustomIcon('#dc2626'), apoios: 12, apoiado: false },
+    { id: 2, pos: [-29.158, -51.189], tipo: 'via', desc: 'Buraco na via', protocolo: '#001565', icon: createCustomIcon('#2563eb'), apoios: 45, apoiado: false },
+    { id: 3, pos: [-29.178, -51.169], tipo: 'lixo', desc: 'Lixo acumulado', protocolo: '#001495', icon: createCustomIcon('#eab308'), apoios: 3, apoiado: false },
   ]);
+
+  // --- ESTADOS DO ADMINISTRADOR (RF6) ---
+  const [categoriasAdmin, setCategoriasAdmin] = useState([
+    { id: 1, nome: 'Iluminação Pública', setor: 'Secretaria de Obras', prazo: '5 dias', tipo: 'iluminacao', cor: '#dc2626' },
+    { id: 2, nome: 'Problemas na via', setor: 'Secretaria de Trânsito', prazo: '15 dias', tipo: 'via', cor: '#2563eb' },
+    { id: 3, nome: 'Lixo e Limpeza', setor: 'Codeca', prazo: '3 dias', tipo: 'lixo', cor: '#eab308' }
+  ]);
+  const [showNovaCategoria, setShowNovaCategoria] = useState(false);
+  const [novaCatNome, setNovaCatNome] = useState('');
+  const [novaCatSetor, setNovaCatSetor] = useState('');
+  const [novaCatPrazo, setNovaCatPrazo] = useState('');
+  const [novaCatCor, setNovaCatCor] = useState('#16a34a'); // Estado da cor restaurado!
 
   const handleApoiar = (id) => {
     setMarcadores(marcadores.map(m => 
@@ -86,8 +98,13 @@ function App() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    setTelaAtual('dashboard');
-    window.location.hash = 'dashboard';
+    if (cpfLogin === '000.000.000-00' || senhaLogin === 'admin') {
+      setTelaAtual('admin-dashboard');
+      window.location.hash = 'admin-dashboard';
+    } else {
+      setTelaAtual('dashboard');
+      window.location.hash = 'dashboard';
+    }
   };
 
   const handleCadastro = (e) => {
@@ -131,11 +148,30 @@ function App() {
 
   const handleEnviarProblema = (e) => {
     e.preventDefault();
+    if (!categoriaSelecionada) return alert("Selecione uma categoria!");
+    
+    // Busca a categoria selecionada para aplicar a cor certa no mapa
+    const catSelec = categoriasAdmin.find(c => c.tipo === categoriaSelecionada);
+    const corSelecionada = catSelec ? catSelec.cor : '#16a34a';
+
+    const novaSolicitacao = {
+      id: marcadores.length + 1,
+      pos: [-29.165, -51.185], 
+      tipo: categoriaSelecionada,
+      desc: descricaoProblema,
+      protocolo: `#001${Math.floor(Math.random() * 900) + 100}`,
+      icon: createCustomIcon(corSelecionada), // Cria o pin na cor correta!
+      apoios: 0,
+      apoiado: true
+    };
+    
+    setMarcadores([...marcadores, novaSolicitacao]);
     fecharCamera(); 
     alert('Problema registrado com sucesso!');
     setTelaAtual('acompanhar'); 
     window.location.hash = 'acompanhar';
     setDescricaoProblema(''); 
+    setCategoriaSelecionada('');
     setArquivo(null);
     setEnderecoEditavel(false);
   };
@@ -168,6 +204,112 @@ function App() {
       </div>
     </div>
   );
+
+  // --- TELA DO PAINEL ADMINISTRATIVO (RF6) ---
+  if (telaAtual === 'admin-dashboard') {
+    const handleAddCategoria = (e) => {
+      e.preventDefault();
+      const slugTipo = novaCatNome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '');
+      
+      const nova = {
+        id: categoriasAdmin.length > 0 ? categoriasAdmin[categoriasAdmin.length - 1].id + 1 : 1,
+        nome: novaCatNome,
+        setor: novaCatSetor,
+        prazo: novaCatPrazo,
+        tipo: slugTipo,
+        cor: novaCatCor // Usa a cor escolhida
+      };
+      
+      setCategoriasAdmin([...categoriasAdmin, nova]);
+      setShowNovaCategoria(false);
+      setNovaCatNome(''); setNovaCatSetor(''); setNovaCatPrazo(''); setNovaCatCor('#16a34a');
+      alert('Categoria adicionada com sucesso!');
+    };
+
+    const handleExcluirCategoria = (id) => {
+      if (window.confirm("Tem certeza que deseja excluir esta categoria?")) {
+        setCategoriasAdmin(categoriasAdmin.filter(c => c.id !== id));
+      }
+    };
+
+    return (
+      <div className="app-container" style={{ backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
+        <div className="navbar" style={{ backgroundColor: '#1e293b', color: 'white' }}>
+          <h1 className="logo nav-logo" style={{ margin: 0, fontSize: '20px', color: 'white' }}>
+            <span className="logo-icon" style={{ fontSize: '18px', padding: '4px 8px', backgroundColor: '#3b82f6', color: 'white' }}>Ad</span> Connect Cidade
+          </h1>
+          <div className="nav-actions">
+            <span style={{ marginRight: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <FaUserShield /> Prefeitura
+            </span>
+            <button className="nav-btn logout-btn" onClick={() => { setTelaAtual('login'); window.location.hash = ''; }} style={{ color: 'white', borderColor: 'white' }}>
+              Sair
+            </button>
+          </div>
+        </div>
+
+        <div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
+          <h2 className="internal-title">Gestão de Categorias</h2>
+          <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Adicione ou remova as categorias de problemas urbanos (RF6).</p>
+          
+          <button className="btn-acessar" style={{ width: 'auto', padding: '10px 15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#3b82f6' }} onClick={() => setShowNovaCategoria(!showNovaCategoria)}>
+            <FaPlus /> Nova Categoria
+          </button>
+
+          {showNovaCategoria && (
+            <form onSubmit={handleAddCategoria} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>Cadastrar Nova</h3>
+              <div className="input-group"><input type="text" placeholder="Nome da Categoria (ex: Saneamento)" value={novaCatNome} onChange={e => setNovaCatNome(e.target.value)} required /></div>
+              <div className="input-group"><input type="text" placeholder="Setor Responsável (ex: SAMAE)" value={novaCatSetor} onChange={e => setNovaCatSetor(e.target.value)} required /></div>
+              <div className="input-group"><input type="text" placeholder="Prazo Médio (ex: 7 dias)" value={novaCatPrazo} onChange={e => setNovaCatPrazo(e.target.value)} required /></div>
+              
+              {/* O SELETOR DE COR RESTAURADO */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', padding: '10px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                <label style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>Cor do Marcador no Mapa:</label>
+                <input type="color" value={novaCatCor} onChange={e => setNovaCatCor(e.target.value)} style={{ width: '40px', height: '35px', padding: '0', border: 'none', cursor: 'pointer', borderRadius: '4px' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn-acessar" style={{ backgroundColor: '#16a34a' }}>Salvar</button>
+                <button type="button" className="btn-outline" onClick={() => setShowNovaCategoria(false)}>Cancelar</button>
+              </div>
+            </form>
+          )}
+
+          <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: 'white' }}>
+              <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                <tr>
+                  <th style={{ padding: '12px', textAlign: 'center', width: '50px' }}>Cor</th>
+                  <th style={{ padding: '12px' }}>Categoria</th>
+                  <th style={{ padding: '12px' }}>Setor Responsável</th>
+                  <th style={{ padding: '12px' }}>Prazo Médio</th>
+                  <th style={{ padding: '12px', textAlign: 'center' }}>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoriasAdmin.map(cat => (
+                  <tr key={cat.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: cat.cor, margin: '0 auto', border: '1px solid #ccc' }}></div>
+                    </td>
+                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{cat.nome}</td>
+                    <td style={{ padding: '12px', color: '#64748b' }}>{cat.setor}</td>
+                    <td style={{ padding: '12px', color: '#64748b' }}>{cat.prazo}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button onClick={() => handleExcluirCategoria(cat.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} title="Excluir">
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (telaAtual === 'acompanhar') {
     return (
@@ -244,8 +386,23 @@ function App() {
           </div>
 
           <form onSubmit={handleEnviarProblema} className="form-registrar">
+            
+            <label>Categoria do Problema</label>
+            <select 
+              value={categoriaSelecionada} 
+              onChange={(e) => setCategoriaSelecionada(e.target.value)}
+              style={{ width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #d4d4d8', marginBottom: '15px', backgroundColor: 'white' }} 
+              required
+            >
+              <option value="">Selecione uma categoria...</option>
+              {categoriasAdmin.map(cat => (
+                <option key={cat.id} value={cat.tipo}>{cat.nome}</option>
+              ))}
+            </select>
+
             <label>Nos conte o que aconteceu</label>
             <textarea placeholder="Escreva aqui" value={descricaoProblema} onChange={(e) => setDescricaoProblema(e.target.value)} required></textarea>
+            
             <label>Agora precisamos de uma foto</label>
             <div className="file-buttons">
               <input type="file" accept="image/*" style={{ display: 'none' }} ref={fileInputRef} onChange={(e) => { if (e.target.files && e.target.files.length > 0) setArquivo(e.target.files[0]); }} />
@@ -269,7 +426,6 @@ function App() {
               <FaEdit className="edit-icon" onClick={() => setEnderecoEditavel(!enderecoEditavel)} title="Editar endereço" style={{ color: enderecoEditavel ? '#16a34a' : '#111' }} />
             </div>
 
-            {/* FRASE DA IA E BOTÃO RESTAURADOS AQUI */}
             <p className="ai-notice" style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '15px' }}>
               Um sistema de Inteligência Artificial é utilizado no registro dos problemas. <a href="#saibamais" style={{ color: '#2563eb', textDecoration: 'none' }}>Saiba mais</a>
             </p>
@@ -295,11 +451,26 @@ function App() {
           
           <h2 className="text-center mt-4" style={{ marginBottom: '10px' }}>A cidade agora</h2>
           
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
             <button onClick={() => setFiltroMapa('todos')} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #d4d4d8', backgroundColor: filtroMapa === 'todos' ? '#111' : 'white', color: filtroMapa === 'todos' ? 'white' : '#111', cursor: 'pointer', fontSize: '13px' }}>Todos</button>
-            <button onClick={() => setFiltroMapa('iluminacao')} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #dc2626', backgroundColor: filtroMapa === 'iluminacao' ? '#dc2626' : 'white', color: filtroMapa === 'iluminacao' ? 'white' : '#dc2626', cursor: 'pointer', fontSize: '13px' }}>Iluminação</button>
-            <button onClick={() => setFiltroMapa('via')} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #2563eb', backgroundColor: filtroMapa === 'via' ? '#2563eb' : 'white', color: filtroMapa === 'via' ? 'white' : '#2563eb', cursor: 'pointer', fontSize: '13px' }}>Vias</button>
-            <button onClick={() => setFiltroMapa('lixo')} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #eab308', backgroundColor: filtroMapa === 'lixo' ? '#eab308' : 'white', color: filtroMapa === 'lixo' ? 'white' : '#eab308', cursor: 'pointer', fontSize: '13px' }}>Lixo</button>
+            
+            {categoriasAdmin.map(cat => (
+              <button 
+                key={cat.id}
+                onClick={() => setFiltroMapa(cat.tipo)} 
+                style={{ 
+                  padding: '6px 12px', 
+                  borderRadius: '20px', 
+                  border: `1px solid ${cat.cor}`, 
+                  backgroundColor: filtroMapa === cat.tipo ? cat.cor : 'white', 
+                  color: filtroMapa === cat.tipo ? 'white' : cat.cor, 
+                  cursor: 'pointer', 
+                  fontSize: '13px' 
+                }}
+              >
+                {cat.nome.split(' ')[0]} 
+              </button>
+            ))}
           </div>
 
           <div className="map-container" style={{ height: '350px', width: '100%', zIndex: 0 }}>
@@ -336,9 +507,11 @@ function App() {
           </div>
 
           <div className="map-legend">
-            <span><FaMapMarkerAlt style={{color: '#dc2626'}} /> Iluminação</span>
-            <span><FaMapMarkerAlt style={{color: '#2563eb'}} /> Via</span>
-            <span><FaMapMarkerAlt style={{color: '#eab308'}} /> Lixo</span>
+            {categoriasAdmin.map(cat => (
+              <span key={cat.id}>
+                <FaMapMarkerAlt style={{color: cat.cor}} /> {cat.nome.split(' ')[0]}
+              </span>
+            ))}
           </div>
         </div>
       </div>
