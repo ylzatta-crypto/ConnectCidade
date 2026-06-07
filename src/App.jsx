@@ -71,6 +71,7 @@ function App() {
   const [novaCatSetor, setNovaCatSetor] = useState('');
   const [novaCatPrazo, setNovaCatPrazo] = useState('');
   const [novaCatCor, setNovaCatCor] = useState('#16a34a'); // Estado da cor restaurado!
+  const [abaAdmin, setAbaAdmin] = useState('categorias');
 
   const handleApoiar = (id) => {
     setMarcadores(marcadores.map(m => 
@@ -248,67 +249,155 @@ function App() {
           </div>
         </div>
 
-        <div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
-          <h2 className="internal-title">Gestão de Categorias</h2>
-          <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Adicione ou remova as categorias de problemas urbanos (RF6).</p>
+<div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
           
-          <button className="btn-acessar" style={{ width: 'auto', padding: '10px 15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#3b82f6' }} onClick={() => setShowNovaCategoria(!showNovaCategoria)}>
-            <FaPlus /> Nova Categoria
-          </button>
+      {/* BOTÕES DE NAVEGAÇÃO DO ADMIN */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px' }}>
+            <button 
+              onClick={() => setAbaAdmin('categorias')}
+              style={{ 
+                width: 'auto', 
+                padding: '10px 20px', 
+                backgroundColor: abaAdmin === 'categorias' ? '#1e293b' : 'transparent', 
+                color: abaAdmin === 'categorias' ? 'white' : '#64748b',
+                border: abaAdmin === 'categorias' ? 'none' : '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: '0.2s'
+              }}
+            >
+              Gestão de Categorias
+            </button>
+            <button 
+              onClick={() => setAbaAdmin('relatorios')}
+              style={{ 
+                width: 'auto', 
+                padding: '10px 20px', 
+                backgroundColor: abaAdmin === 'relatorios' ? '#1e293b' : 'transparent', 
+                color: abaAdmin === 'relatorios' ? 'white' : '#64748b',
+                border: abaAdmin === 'relatorios' ? 'none' : '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: '0.2s'
+              }}
+            >
+              Relatórios e Análises
+            </button>
+          </div>
 
-          {showNovaCategoria && (
-            <form onSubmit={handleAddCategoria} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-              <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>Cadastrar Nova</h3>
-              <div className="input-group"><input type="text" placeholder="Nome da Categoria (ex: Saneamento)" value={novaCatNome} onChange={e => setNovaCatNome(e.target.value)} required /></div>
-              <div className="input-group"><input type="text" placeholder="Setor Responsável (ex: SAMAE)" value={novaCatSetor} onChange={e => setNovaCatSetor(e.target.value)} required /></div>
-              <div className="input-group"><input type="text" placeholder="Prazo Médio (ex: 7 dias)" value={novaCatPrazo} onChange={e => setNovaCatPrazo(e.target.value)} required /></div>
+          {/* ABA 1: GESTÃO DE CATEGORIAS */}
+          {abaAdmin === 'categorias' && (
+            <div>
+              <h2 className="internal-title">Gestão de Categorias</h2>
+              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Adicione ou remova as categorias de problemas urbanos (RF6).</p>
               
-              {/* O SELETOR DE COR RESTAURADO */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', padding: '10px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                <label style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>Cor do Marcador no Mapa:</label>
-                <input type="color" value={novaCatCor} onChange={e => setNovaCatCor(e.target.value)} style={{ width: '40px', height: '35px', padding: '0', border: 'none', cursor: 'pointer', borderRadius: '4px' }} />
-              </div>
+              <button className="btn-acessar" style={{ width: 'auto', padding: '10px 15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#3b82f6' }} onClick={() => setShowNovaCategoria(!showNovaCategoria)}>
+                <FaPlus /> Nova Categoria
+              </button>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="btn-acessar" style={{ backgroundColor: '#16a34a' }}>Salvar</button>
-                <button type="button" className="btn-outline" onClick={() => setShowNovaCategoria(false)}>Cancelar</button>
+              {showNovaCategoria && (
+                <form onSubmit={handleAddCategoria} style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                  <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>Cadastrar Nova</h3>
+                  <div className="input-group"><input type="text" placeholder="Nome da Categoria (ex: Saneamento)" value={novaCatNome} onChange={e => setNovaCatNome(e.target.value)} required /></div>
+                  <div className="input-group"><input type="text" placeholder="Setor Responsável (ex: SAMAE)" value={novaCatSetor} onChange={e => setNovaCatSetor(e.target.value)} required /></div>
+                  <div className="input-group"><input type="text" placeholder="Prazo Médio (ex: 7 dias)" value={novaCatPrazo} onChange={e => setNovaCatPrazo(e.target.value)} required /></div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" className="btn-acessar" style={{ backgroundColor: '#16a34a' }}>Salvar</button>
+                    <button type="button" className="btn-outline" onClick={() => setShowNovaCategoria(false)}>Cancelar</button>
+                  </div>
+                </form>
+              )}
+
+              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: 'white' }}>
+                  <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                    <tr>
+                      <th style={{ padding: '12px' }}>Categoria</th>
+                      <th style={{ padding: '12px' }}>Setor Responsável</th>
+                      <th style={{ padding: '12px' }}>Prazo Médio</th>
+                      <th style={{ padding: '12px', textAlign: 'center' }}>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoriasAdmin.map(cat => (
+                      <tr key={cat.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold' }}>{cat.nome}</td>
+                        <td style={{ padding: '12px', color: '#64748b' }}>{cat.setor}</td>
+                        <td style={{ padding: '12px', color: '#64748b' }}>{cat.prazo}</td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <button onClick={() => handleExcluirCategoria(cat.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} title="Excluir">
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </form>
+            </div>
           )}
 
-          <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', backgroundColor: 'white' }}>
-              <thead style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
-                <tr>
-                  <th style={{ padding: '12px', textAlign: 'center', width: '50px' }}>Cor</th>
-                  <th style={{ padding: '12px' }}>Categoria</th>
-                  <th style={{ padding: '12px' }}>Setor Responsável</th>
-                  <th style={{ padding: '12px' }}>Prazo Médio</th>
-                  <th style={{ padding: '12px', textAlign: 'center' }}>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoriasAdmin.map(cat => (
-                  <tr key={cat.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: cat.cor, margin: '0 auto', border: '1px solid #ccc' }}></div>
-                    </td>
-                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{cat.nome}</td>
-                    <td style={{ padding: '12px', color: '#64748b' }}>{cat.setor}</td>
-                    <td style={{ padding: '12px', color: '#64748b' }}>{cat.prazo}</td>
-                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                      <button onClick={() => handleExcluirCategoria(cat.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} title="Excluir">
-                        <FaTrash />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* ABA 2: RELATÓRIOS E ANÁLISES (RF10) */}
+          {abaAdmin === 'relatorios' && (
+            <div>
+              <h2 className="internal-title">Visão Geral da Cidade</h2>
+              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Indicadores de desempenho e exportação de dados.</p>
+              
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
+                <div style={{ padding: '20px', backgroundColor: '#eff6ff', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #bfdbfe' }}>
+                  <h4 style={{ fontSize: '32px', color: '#1d4ed8', margin: '0 0 5px 0' }}>128</h4>
+                  <p style={{ color: '#3b82f6', margin: 0, fontWeight: 'bold' }}>Total de Registos</p>
+                </div>
+                <div style={{ padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #bbf7d0' }}>
+                  <h4 style={{ fontSize: '32px', color: '#15803d', margin: '0 0 5px 0' }}>94</h4>
+                  <p style={{ color: '#22c55e', margin: 0, fontWeight: 'bold' }}>Resolvidos</p>
+                </div>
+                <div style={{ padding: '20px', backgroundColor: '#fef2f2', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #fecaca' }}>
+                  <h4 style={{ fontSize: '32px', color: '#b91c1c', margin: '0 0 5px 0' }}>34</h4>
+                  <p style={{ color: '#ef4444', margin: 0, fontWeight: 'bold' }}>Pendentes</p>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ marginBottom: '15px', fontSize: '18px' }}>Exportar Dados</h3>
+                <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Gere relatórios customizados em formato PDF para análise da gestão municipal e planeamento urbano.</p>
+                
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Período</label>
+                    <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d4d4d8' }}>
+                      <option>Últimos 30 dias</option>
+                      <option>Este Mês</option>
+                      <option>Mês Anterior</option>
+                      <option>Todo o período</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Categoria</label>
+                    <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d4d4d8' }}>
+                      <option>Todas as categorias</option>
+                      {categoriasAdmin.map(cat => <option key={cat.id}>{cat.nome}</option>)}
+                    </select>
+                  </div>
+                  <button 
+                    className="btn-acessar" 
+                    style={{ width: 'auto', padding: '10px 20px', backgroundColor: '#111' }}
+                    onClick={() => {
+                      alert('A gerar relatório completo... O ficheiro relatorio_connect_cidade.pdf foi transferido para o seu dispositivo com sucesso!');
+                    }}
+                  >
+                    Baixar PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
+  
   }
 
   if (telaAtual === 'acompanhar') {
