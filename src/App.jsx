@@ -84,6 +84,17 @@ function App() {
     alert('Classificação aprovada! A demanda foi encaminhada automaticamente para o setor responsável e o algoritmo foi treinado (RNF 7.4).');
   };
 
+  const corrigirIA = (id) => {
+    const novaCategoria = window.prompt("A IA errou? Digite a categoria correta abaixo para re-treinar o algoritmo (RNF 7.4):");
+    
+    if (novaCategoria && novaCategoria.trim() !== "") {
+      setRevisoesIA(revisoesIA.map(item => 
+        item.id === id ? { ...item, iaCategoria: novaCategoria, confianca: '100% (Revisão Humana)' } : item
+      ));
+      alert(`Sucesso! A demanda foi corrigida para "${novaCategoria}" e encaminhada ao setor responsável.`);
+    }
+  };
+
   const handleApoiar = (id) => {
     setMarcadores(marcadores.map(m => 
       m.id === id && !m.apoiado ? { ...m, apoios: m.apoios + 1, apoiado: true } : m
@@ -457,7 +468,7 @@ function App() {
                         <button className="btn-acessar" style={{ width: 'auto', padding: '8px 15px', backgroundColor: '#16a34a', fontSize: '13px' }} onClick={() => aprovarIA(item.id)}>
                           <FaCheckCircle style={{ marginRight: '5px' }} /> Aprovar
                         </button>
-                        <button className="btn-outline" style={{ width: 'auto', padding: '8px 15px', fontSize: '13px' }} onClick={() => alert('Abrindo modal para correção manual...')}>
+                        <button className="btn-outline" style={{ width: 'auto', padding: '8px 15px', fontSize: '13px' }} onClick={() => corrigirIA(item.id)}>
                           <FaEdit style={{ marginRight: '5px' }} /> Corrigir
                         </button>
                       </div>
