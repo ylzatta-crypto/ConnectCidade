@@ -72,6 +72,17 @@ function App() {
   const [novaCatPrazo, setNovaCatPrazo] = useState('');
   const [novaCatCor, setNovaCatCor] = useState('#16a34a'); // Estado da cor restaurado!
   const [abaAdmin, setAbaAdmin] = useState('categorias');
+  // --- ESTADOS DA REVISÃO DE IA (RF7) ---
+  const [revisoesIA, setRevisoesIA] = useState([
+    { id: 101, protocolo: '#001700', descricao: 'Árvore caída bloqueando o trânsito', iaCategoria: 'Problemas na via', confianca: '95%' },
+    { id: 102, protocolo: '#001701', descricao: 'Lâmpada piscando no poste da esquina', iaCategoria: 'Iluminação Pública', confianca: '88%' },
+    { id: 103, protocolo: '#001702', descricao: 'Sofá abandonado na praça', iaCategoria: 'Lixo e Limpeza', confianca: '91%' }
+  ]);
+
+  const aprovarIA = (id) => {
+    setRevisoesIA(revisoesIA.filter(item => item.id !== id));
+    alert('Classificação aprovada! A demanda foi encaminhada automaticamente para o setor responsável e o algoritmo foi treinado (RNF 7.4).');
+  };
 
   const handleApoiar = (id) => {
     setMarcadores(marcadores.map(m => 
@@ -252,7 +263,9 @@ function App() {
 <div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
           
       {/* BOTÕES DE NAVEGAÇÃO DO ADMIN */}
+          {/* BOTÕES DE NAVEGAÇÃO DO ADMIN */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px' }}>
+            
             <button 
               onClick={() => setAbaAdmin('categorias')}
               style={{ 
@@ -269,6 +282,7 @@ function App() {
             >
               Gestão de Categorias
             </button>
+
             <button 
               onClick={() => setAbaAdmin('relatorios')}
               style={{ 
@@ -285,6 +299,24 @@ function App() {
             >
               Relatórios e Análises
             </button>
+
+            <button 
+              onClick={() => setAbaAdmin('ia')}
+              style={{ 
+                width: 'auto', 
+                padding: '10px 20px', 
+                backgroundColor: abaAdmin === 'ia' ? '#1e293b' : 'transparent', 
+                color: abaAdmin === 'ia' ? 'white' : '#64748b',
+                border: abaAdmin === 'ia' ? 'none' : '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: '0.2s'
+              }}
+            >
+              Revisão de IA 
+            </button>
+
           </div>
 
           {/* ABA 1: GESTÃO DE CATEGORIAS */}
@@ -340,7 +372,7 @@ function App() {
           )}
 
           {/* ABA 2: RELATÓRIOS E ANÁLISES (RF10) */}
-          {abaAdmin === 'relatorios' && (
+          {abaAdmin === 'relatorios' && 
             <div>
               <h2 className="internal-title">Visão Geral da Cidade</h2>
               <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Indicadores de desempenho e exportação de dados.</p>
@@ -393,7 +425,49 @@ function App() {
                 </div>
               </div>
             </div>
+            /* ABA 3: REVISÃO DE INTELIGÊNCIA ARTIFICIAL (RF7) */}
+          {abaAdmin === 'ia' && (
+            <div>
+              <h2 className="internal-title">Classificação de Categorias por IA</h2>
+              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>
+                Revise as sugestões feitas pela Inteligência Artificial antes de encaminhar aos setores (RF7).
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {revisoesIA.length === 0 ? (
+                  <div style={{ padding: '30px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b' }}>
+                    Nenhuma classificação pendente para revisão.
+                  </div>
+                ) : (
+                  revisoesIA.map((item) => (
+                    <div key={item.id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{item.protocolo}</span>
+                          <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                            Confiança da IA: {item.confianca}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '14px', color: '#333', margin: '0 0 10px 0' }}>"{item.descricao}"</p>
+                        <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+                          A IA sugere a categoria: <b style={{ color: '#2563eb' }}>{item.iaCategoria}</b>
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', marginLeft: '20px' }}>
+                        <button className="btn-acessar" style={{ width: 'auto', padding: '8px 15px', backgroundColor: '#16a34a', fontSize: '13px' }} onClick={() => aprovarIA(item.id)}>
+                          <FaCheckCircle style={{ marginRight: '5px' }} /> Aprovar
+                        </button>
+                        <button className="btn-outline" style={{ width: 'auto', padding: '8px 15px', fontSize: '13px' }} onClick={() => alert('Abrindo modal para correção manual...')}>
+                          <FaEdit style={{ marginRight: '5px' }} /> Corrigir
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
+          
         </div>
       </div>
     );
