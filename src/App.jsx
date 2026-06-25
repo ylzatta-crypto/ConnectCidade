@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   FaUser, FaLock, FaEnvelope, FaPhone, FaCalendarAlt, FaArrowLeft,
   FaHome, FaBell, FaMapMarkerAlt, FaPaperclip, FaCamera, FaEdit, FaListUl, 
@@ -6,13 +6,13 @@ import {
   FaUserShield, FaPlus, FaTrash
 } from 'react-icons/fa';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 import './App.css';
 
-// NOVA FUNÇÃO: Gera um pin do mapa dinamicamente com qualquer cor (HEX) escolhida
+// Função: Gera um pin do mapa dinamicamente
 const createCustomIcon = (hexColor) => L.divIcon({
   className: 'custom-pin',
   html: `<svg viewBox="0 0 384 512" style="height: 35px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><path fill="${hexColor}" stroke="#ffffff" stroke-width="15" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0zM192 272c44.183 0 80-35.817 80-80s-35.817-80-80-80-80 35.817-80 80 35.817 80 80 80z"/></svg>`,
@@ -21,11 +21,12 @@ const createCustomIcon = (hexColor) => L.divIcon({
   popupAnchor: [0, -35]
 });
 
-const minhasSolicitacoesBD = [
-  { protocolo: '#001565', data: '10/04/2026', problema: 'Buraco na via principal', status: 'Resolvido', cor: '#16a34a', icon: <FaCheckCircle /> },
-  { protocolo: '#001602', data: '11/04/2026', problema: 'Lâmpada queimada na praça', status: 'Em Análise', cor: '#eab308', icon: <FaSearch /> },
-  { protocolo: '#001650', data: 'Hoje', problema: 'Entulho na calçada', status: 'Pendente', cor: '#dc2626', icon: <FaClock /> }
-];
+// Componente: Ajuda o mapa a pular para a localização real assim que o GPS encontrar
+function ChangeView({ center }) {
+  const map = useMap();
+  map.setView(center, map.getZoom());
+  return null;
+}
 
 function App() {
   const [telaAtual, setTelaAtual] = useState('login');
@@ -42,7 +43,7 @@ function App() {
   const [confirmaSenha, setConfirmaSenha] = useState('');
 
   const [descricaoProblema, setDescricaoProblema] = useState('');
-  const [endereco, setEndereco] = useState('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460');
+  const [endereco, setEndereco] = useState('Buscando sua localização atual...');
   const [enderecoEditavel, setEnderecoEditavel] = useState(false);
   const [categoriaSelecionada, setCategoriaSelecionada] = useState('');
   
@@ -53,7 +54,16 @@ function App() {
 
   const [filtroMapa, setFiltroMapa] = useState('todos');
 
-  // Marcadores iniciais agora usam o gerador de cores dinâmicas
+  // Estado: Guarda a localização real do GPS do usuário
+  const [userLocation, setUserLocation] = useState([-29.168, -51.179]); // Inicia em Caxias do Sul por padrão
+
+  // Estado: Minhas Solicitações dinâmicas
+  const [minhasSolicitacoes, setMinhasSolicitacoes] = useState([
+    { protocolo: '#001565', data: '10/04/2026', problema: 'Buraco na via principal', status: 'Resolvido', cor: '#16a34a', icon: <FaCheckCircle /> },
+    { protocolo: '#001602', data: '11/04/2026', problema: 'Lâmpada queimada na praça', status: 'Em Análise', cor: '#eab308', icon: <FaSearch /> },
+    { protocolo: '#001650', data: 'Hoje', problema: 'Entulho na calçada', status: 'Pendente', cor: '#dc2626', icon: <FaClock /> }
+  ]);
+
   const [marcadores, setMarcadores] = useState([
     { id: 1, pos: [-29.168, -51.179], tipo: 'iluminacao', desc: 'Poste sem luz', protocolo: '#001509', icon: createCustomIcon('#dc2626'), apoios: 12, apoiado: false },
     { id: 2, pos: [-29.158, -51.189], tipo: 'via', desc: 'Buraco na via', protocolo: '#001565', icon: createCustomIcon('#2563eb'), apoios: 45, apoiado: false },
@@ -70,14 +80,47 @@ function App() {
   const [novaCatNome, setNovaCatNome] = useState('');
   const [novaCatSetor, setNovaCatSetor] = useState('');
   const [novaCatPrazo, setNovaCatPrazo] = useState('');
-  const [novaCatCor, setNovaCatCor] = useState('#16a34a'); // Estado da cor restaurado!
+  const [novaCatCor, setNovaCatCor] = useState('#16a34a'); 
   const [abaAdmin, setAbaAdmin] = useState('categorias');
+  
   // --- ESTADOS DA REVISÃO DE IA (RF7) ---
   const [revisoesIA, setRevisoesIA] = useState([
     { id: 101, protocolo: '#001700', descricao: 'Árvore caída bloqueando o trânsito', iaCategoria: 'Problemas na via', confianca: '95%' },
     { id: 102, protocolo: '#001701', descricao: 'Lâmpada piscando no poste da esquina', iaCategoria: 'Iluminação Pública', confianca: '88%' },
     { id: 103, protocolo: '#001702', descricao: 'Sofá abandonado na praça', iaCategoria: 'Lixo e Limpeza', confianca: '91%' }
   ]);
+
+  // Busca o GPS ao carregar o aplicativo
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserLocation([lat, lng]); 
+          
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            if (data && data.display_name) {
+              setEndereco(data.display_name); 
+            } else {
+              setEndereco('Endereço não encontrado. Clique no ícone de lápis para digitar.');
+            }
+          } catch (error) {
+            console.error("Erro ao buscar endereço de texto:", error);
+            setEndereco('Não foi possível obter o nome da rua automaticamente.');
+          }
+        },
+        (error) => {
+          console.error("Geolocalização bloqueada ou com erro:", error.message);
+          setEndereco('R. Alfredo Chaves, 1333 - Centro, Caxias do Sul - RS, 95020-460'); 
+        }
+      );
+    } else {
+      setEndereco('Geolocalização não suportada pelo navegador.');
+    }
+  }, []); 
 
   const aprovarIA = (id) => {
     setRevisoesIA(revisoesIA.filter(item => item.id !== id));
@@ -86,7 +129,6 @@ function App() {
 
   const corrigirIA = (id) => {
     const novaCategoria = window.prompt("A IA errou? Digite a categoria correta abaixo para re-treinar o algoritmo (RNF 7.4):");
-    
     if (novaCategoria && novaCategoria.trim() !== "") {
       setRevisoesIA(revisoesIA.map(item => 
         item.id === id ? { ...item, iaCategoria: novaCategoria, confianca: '100% (Revisão Humana)' } : item
@@ -140,11 +182,19 @@ function App() {
 
   const abrirCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Tenta abrir a câmera traseira primeiro (environment)
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setIsCameraOpen(true);
       setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream; }, 100);
     } catch (err) {
-      alert("Não foi possível acessar a câmera.");
+      // Fallback: se não tiver câmera traseira, tenta qualquer câmera
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setIsCameraOpen(true);
+        setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = fallbackStream; }, 100);
+      } catch (fallbackErr) {
+        alert("Não foi possível acessar a câmera do seu dispositivo.");
+      }
     }
   };
 
@@ -173,24 +223,38 @@ function App() {
     e.preventDefault();
     if (!categoriaSelecionada) return alert("Selecione uma categoria!");
     
-    // Busca a categoria selecionada para aplicar a cor certa no mapa
     const catSelec = categoriasAdmin.find(c => c.tipo === categoriaSelecionada);
     const corSelecionada = catSelec ? catSelec.cor : '#16a34a';
 
-    const novaSolicitacao = {
+    const protocoloGerado = `#001${Math.floor(Math.random() * 900) + 100}`;
+
+    // Adiciona marcador no mapa
+    const novaSolicitacaoMapa = {
       id: marcadores.length + 1,
-      pos: [-29.165, -51.185], 
+      pos: userLocation, 
       tipo: categoriaSelecionada,
       desc: descricaoProblema,
-      protocolo: `#001${Math.floor(Math.random() * 900) + 100}`,
-      icon: createCustomIcon(corSelecionada), // Cria o pin na cor correta!
+      protocolo: protocoloGerado,
+      icon: createCustomIcon(corSelecionada),
       apoios: 0,
       apoiado: true
     };
     
-    setMarcadores([...marcadores, novaSolicitacao]);
+    // Adiciona na lista de "Minhas Solicitações"
+    const novaSolicitacaoLista = {
+      protocolo: protocoloGerado,
+      data: 'Hoje',
+      problema: descricaoProblema,
+      status: 'Pendente',
+      cor: '#dc2626', 
+      icon: <FaClock />
+    };
+
+    setMarcadores([...marcadores, novaSolicitacaoMapa]);
+    setMinhasSolicitacoes([novaSolicitacaoLista, ...minhasSolicitacoes]);
+    
     fecharCamera(); 
-    alert('Problema registrado com sucesso!');
+    alert('Problema registrado com sucesso na sua localização atual!');
     setTelaAtual('acompanhar'); 
     window.location.hash = 'acompanhar';
     setDescricaoProblema(''); 
@@ -228,7 +292,7 @@ function App() {
     </div>
   );
 
-  // --- TELA DO PAINEL ADMINISTRATIVO (RF6) ---
+  // --- TELA DO PAINEL ADMINISTRATIVO ---
   if (telaAtual === 'admin-dashboard') {
     const handleAddCategoria = (e) => {
       e.preventDefault();
@@ -240,7 +304,7 @@ function App() {
         setor: novaCatSetor,
         prazo: novaCatPrazo,
         tipo: slugTipo,
-        cor: novaCatCor // Usa a cor escolhida
+        cor: novaCatCor 
       };
       
       setCategoriasAdmin([...categoriasAdmin, nova]);
@@ -271,70 +335,30 @@ function App() {
           </div>
         </div>
 
-<div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
+        <div className="internal-box" style={{ maxWidth: '800px', marginTop: '30px' }}>
           
-      {/* BOTÕES DE NAVEGAÇÃO DO ADMIN */}
-          {/* BOTÕES DE NAVEGAÇÃO DO ADMIN */}
           <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', borderBottom: '2px solid #e2e8f0', paddingBottom: '15px' }}>
-            
             <button 
               onClick={() => setAbaAdmin('categorias')}
-              style={{ 
-                width: 'auto', 
-                padding: '10px 20px', 
-                backgroundColor: abaAdmin === 'categorias' ? '#1e293b' : 'transparent', 
-                color: abaAdmin === 'categorias' ? 'white' : '#64748b',
-                border: abaAdmin === 'categorias' ? 'none' : '1px solid #cbd5e1',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: '0.2s'
-              }}
-            >
+              style={{ width: 'auto', padding: '10px 20px', backgroundColor: abaAdmin === 'categorias' ? '#1e293b' : 'transparent', color: abaAdmin === 'categorias' ? 'white' : '#64748b', border: abaAdmin === 'categorias' ? 'none' : '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>
               Gestão de Categorias
             </button>
-
             <button 
               onClick={() => setAbaAdmin('relatorios')}
-              style={{ 
-                width: 'auto', 
-                padding: '10px 20px', 
-                backgroundColor: abaAdmin === 'relatorios' ? '#1e293b' : 'transparent', 
-                color: abaAdmin === 'relatorios' ? 'white' : '#64748b',
-                border: abaAdmin === 'relatorios' ? 'none' : '1px solid #cbd5e1',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: '0.2s'
-              }}
-            >
+              style={{ width: 'auto', padding: '10px 20px', backgroundColor: abaAdmin === 'relatorios' ? '#1e293b' : 'transparent', color: abaAdmin === 'relatorios' ? 'white' : '#64748b', border: abaAdmin === 'relatorios' ? 'none' : '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>
               Relatórios e Análises
             </button>
-
             <button 
               onClick={() => setAbaAdmin('ia')}
-              style={{ 
-                width: 'auto', 
-                padding: '10px 20px', 
-                backgroundColor: abaAdmin === 'ia' ? '#1e293b' : 'transparent', 
-                color: abaAdmin === 'ia' ? 'white' : '#64748b',
-                border: abaAdmin === 'ia' ? 'none' : '1px solid #cbd5e1',
-                borderRadius: '6px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: '0.2s'
-              }}
-            >
+              style={{ width: 'auto', padding: '10px 20px', backgroundColor: abaAdmin === 'ia' ? '#1e293b' : 'transparent', color: abaAdmin === 'ia' ? 'white' : '#64748b', border: abaAdmin === 'ia' ? 'none' : '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>
               Revisão de IA 
             </button>
-
           </div>
 
-          {/* ABA 1: GESTÃO DE CATEGORIAS */}
           {abaAdmin === 'categorias' && (
             <div>
               <h2 className="internal-title">Gestão de Categorias</h2>
-              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Adicione ou remova as categorias de problemas urbanos (RF6).</p>
+              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Adicione ou remova as categorias de problemas urbanos.</p>
               
               <button className="btn-acessar" style={{ width: 'auto', padding: '10px 15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#3b82f6' }} onClick={() => setShowNovaCategoria(!showNovaCategoria)}>
                 <FaPlus /> Nova Categoria
@@ -382,12 +406,9 @@ function App() {
             </div>
           )}
 
-          {/* ABA 2: RELATÓRIOS E ANÁLISES (RF10) */}
           {abaAdmin === 'relatorios' && 
             <div>
               <h2 className="internal-title">Visão Geral da Cidade</h2>
-              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>Indicadores de desempenho e exportação de dados.</p>
-              
               <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
                 <div style={{ padding: '20px', backgroundColor: '#eff6ff', borderRadius: '8px', flex: 1, textAlign: 'center', border: '1px solid #bfdbfe' }}>
                   <h4 style={{ fontSize: '32px', color: '#1d4ed8', margin: '0 0 5px 0' }}>128</h4>
@@ -405,8 +426,6 @@ function App() {
 
               <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <h3 style={{ marginBottom: '15px', fontSize: '18px' }}>Exportar Dados</h3>
-                <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>Gere relatórios customizados em formato PDF para análise da gestão municipal e planeamento urbano.</p>
-                
                 <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '13px', marginBottom: '5px', fontWeight: 'bold' }}>Período</label>
@@ -424,26 +443,15 @@ function App() {
                       {categoriasAdmin.map(cat => <option key={cat.id}>{cat.nome}</option>)}
                     </select>
                   </div>
-                  <button 
-                    className="btn-acessar" 
-                    style={{ width: 'auto', padding: '10px 20px', backgroundColor: '#111' }}
-                    onClick={() => {
-                      alert('A gerar relatório completo... O ficheiro relatorio_connect_cidade.pdf foi transferido para o seu dispositivo com sucesso!');
-                    }}
-                  >
-                    Baixar PDF
-                  </button>
+                  <button className="btn-acessar" style={{ width: 'auto', padding: '10px 20px', backgroundColor: '#111' }} onClick={() => alert('Download do PDF gerado com sucesso!')}>Baixar PDF</button>
                 </div>
               </div>
             </div>
-            /* ABA 3: REVISÃO DE INTELIGÊNCIA ARTIFICIAL (RF7) */}
+          }
+
           {abaAdmin === 'ia' && (
             <div>
               <h2 className="internal-title">Classificação de Categorias por IA</h2>
-              <p style={{ color: '#555', marginBottom: '20px', fontSize: '14px' }}>
-                Revise as sugestões feitas pela Inteligência Artificial antes de encaminhar aos setores (RF7).
-              </p>
-              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {revisoesIA.length === 0 ? (
                   <div style={{ padding: '30px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', color: '#64748b' }}>
@@ -455,22 +463,14 @@ function App() {
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                           <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{item.protocolo}</span>
-                          <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
-                            Confiança da IA: {item.confianca}
-                          </span>
+                          <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>Confiança da IA: {item.confianca}</span>
                         </div>
                         <p style={{ fontSize: '14px', color: '#333', margin: '0 0 10px 0' }}>"{item.descricao}"</p>
-                        <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
-                          A IA sugere a categoria: <b style={{ color: '#2563eb' }}>{item.iaCategoria}</b>
-                        </p>
+                        <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>A IA sugere a categoria: <b style={{ color: '#2563eb' }}>{item.iaCategoria}</b></p>
                       </div>
                       <div style={{ display: 'flex', gap: '10px', marginLeft: '20px' }}>
-                        <button className="btn-acessar" style={{ width: 'auto', padding: '8px 15px', backgroundColor: '#16a34a', fontSize: '13px' }} onClick={() => aprovarIA(item.id)}>
-                          <FaCheckCircle style={{ marginRight: '5px' }} /> Aprovar
-                        </button>
-                        <button className="btn-outline" style={{ width: 'auto', padding: '8px 15px', fontSize: '13px' }} onClick={() => corrigirIA(item.id)}>
-                          <FaEdit style={{ marginRight: '5px' }} /> Corrigir
-                        </button>
+                        <button className="btn-acessar" style={{ width: 'auto', padding: '8px 15px', backgroundColor: '#16a34a', fontSize: '13px' }} onClick={() => aprovarIA(item.id)}><FaCheckCircle style={{ marginRight: '5px' }} /> Aprovar</button>
+                        <button className="btn-outline" style={{ width: 'auto', padding: '8px 15px', fontSize: '13px' }} onClick={() => corrigirIA(item.id)}><FaEdit style={{ marginRight: '5px' }} /> Corrigir</button>
                       </div>
                     </div>
                   ))
@@ -478,13 +478,12 @@ function App() {
               </div>
             </div>
           )}
-          
         </div>
       </div>
     );
-  
   }
 
+  // --- TELA MINHAS SOLICITAÇÕES ---
   if (telaAtual === 'acompanhar') {
     return (
       <div className="app-container">
@@ -493,7 +492,7 @@ function App() {
           <div className="header-cadastro"><button className="btn-voltar" onClick={() => { setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}><FaArrowLeft /> Voltar ao Mapa</button></div>
           <h2 className="internal-title"><FaListUl style={{marginRight: '10px'}}/> Minhas Solicitações</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {minhasSolicitacoesBD.map((solic, index) => (
+            {minhasSolicitacoes.map((solic, index) => (
               <div key={index} style={{ border: '1px solid #e4e4e7', borderRadius: '12px', padding: '20px', backgroundColor: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', color: '#111', marginBottom: '5px' }}>{solic.problema}</h3>
@@ -508,6 +507,7 @@ function App() {
     );
   }
 
+  // --- TELA PERFIL ---
   if (telaAtual === 'perfil') {
     return (
       <div className="app-container">
@@ -530,44 +530,29 @@ function App() {
     );
   }
 
+  // --- TELA REGISTRAR PROBLEMA ---
   if (telaAtual === 'registrar') {
     return (
       <div className="app-container">
         <Navbar />
         <div className="internal-box">
           <div className="header-cadastro">
-            <button className="btn-voltar" onClick={() => { fecharCamera(); setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}>
-              <FaArrowLeft /> Voltar
-            </button>
+            <button className="btn-voltar" onClick={() => { fecharCamera(); setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }}><FaArrowLeft /> Voltar</button>
           </div>
           <h2 className="internal-title">Registrar problema</h2>
           
           <div style={{ backgroundColor: '#fef08a', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', color: '#854d0e', display: 'flex', alignItems: 'flex-start', gap: '10px', border: '1px solid #fde047' }}>
             <FaExclamationTriangle style={{ fontSize: '18px', flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <b>Inteligência Artificial Connect:</b> Identificamos um "Buraco na via" a 40 metros da sua localização (Protocolo #001565). 
+              <b>Inteligência Artificial Connect:</b> Identificamos um "Buraco na via" a 40 metros da sua localização. 
               <br/>
-              <a href="#dashboard" onClick={(e) => {
-                e.preventDefault();
-                alert('Apoio registrado com sucesso! Obrigado por ajudar a evitar protocolos duplicados.');
-                handleApoiar(2); 
-                setTelaAtual('dashboard');
-                window.location.hash = 'dashboard';
-              }} style={{ color: '#16a34a', fontWeight: 'bold', textDecoration: 'underline', marginTop: '5px', display: 'inline-block' }}>
-                Deseja apenas apoiar a solicitação existente?
-              </a>
+              <a href="#dashboard" onClick={(e) => { e.preventDefault(); alert('Apoio registrado com sucesso!'); handleApoiar(2); setTelaAtual('dashboard'); window.location.hash = 'dashboard'; }} style={{ color: '#16a34a', fontWeight: 'bold', textDecoration: 'underline', marginTop: '5px', display: 'inline-block' }}>Deseja apenas apoiar a solicitação existente?</a>
             </div>
           </div>
 
           <form onSubmit={handleEnviarProblema} className="form-registrar">
-            
             <label>Categoria do Problema</label>
-            <select 
-              value={categoriaSelecionada} 
-              onChange={(e) => setCategoriaSelecionada(e.target.value)}
-              style={{ width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #d4d4d8', marginBottom: '15px', backgroundColor: 'white' }} 
-              required
-            >
+            <select value={categoriaSelecionada} onChange={(e) => setCategoriaSelecionada(e.target.value)} style={{ width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #d4d4d8', marginBottom: '15px', backgroundColor: 'white' }} required>
               <option value="">Selecione uma categoria...</option>
               {categoriasAdmin.map(cat => (
                 <option key={cat.id} value={cat.tipo}>{cat.nome}</option>
@@ -596,14 +581,11 @@ function App() {
             )}
             <label>Localização obtida automaticamente</label>
             <div className="input-group">
-              <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)} readOnly={!enderecoEditavel} className="location-input" style={{ backgroundColor: enderecoEditavel ? '#d1fad0' : 'white', cursor: enderecoEditavel ? 'text' : 'default' }} />
+              <input type="text" value={endereco} onChange={(e) => setEndereco(e.target.value)} readOnly={!enderecoEditavel} className="location-input" style={{ backgroundColor: enderecoEditavel ? '#d1fad0' : 'white', cursor: enderecoEditavel ? 'text' : 'default', overflow: 'hidden', textOverflow: 'ellipsis' }} />
               <FaEdit className="edit-icon" onClick={() => setEnderecoEditavel(!enderecoEditavel)} title="Editar endereço" style={{ color: enderecoEditavel ? '#16a34a' : '#111' }} />
             </div>
 
-            <p className="ai-notice" style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '15px' }}>
-              Um sistema de Inteligência Artificial é utilizado no registro dos problemas. <a href="#saibamais" style={{ color: '#2563eb', textDecoration: 'none' }}>Saiba mais</a>
-            </p>
-
+            <p className="ai-notice" style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '15px' }}>Um sistema de Inteligência Artificial é utilizado no registro. <a href="#saibamais" style={{ color: '#2563eb' }}>Saiba mais</a></p>
             <button type="submit" className="btn-acessar">Enviar</button>
           </form>
         </div>
@@ -611,6 +593,7 @@ function App() {
     );
   }
 
+  // --- TELA DASHBOARD (MAPA) ---
   if (telaAtual === 'dashboard') {
     const marcadoresFiltrados = marcadores.filter(m => filtroMapa === 'todos' || m.tipo === filtroMapa);
 
@@ -627,30 +610,17 @@ function App() {
           
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
             <button onClick={() => setFiltroMapa('todos')} style={{ padding: '6px 12px', borderRadius: '20px', border: '1px solid #d4d4d8', backgroundColor: filtroMapa === 'todos' ? '#111' : 'white', color: filtroMapa === 'todos' ? 'white' : '#111', cursor: 'pointer', fontSize: '13px' }}>Todos</button>
-            
             {categoriasAdmin.map(cat => (
-              <button 
-                key={cat.id}
-                onClick={() => setFiltroMapa(cat.tipo)} 
-                style={{ 
-                  padding: '6px 12px', 
-                  borderRadius: '20px', 
-                  border: `1px solid ${cat.cor}`, 
-                  backgroundColor: filtroMapa === cat.tipo ? cat.cor : 'white', 
-                  color: filtroMapa === cat.tipo ? 'white' : cat.cor, 
-                  cursor: 'pointer', 
-                  fontSize: '13px' 
-                }}
-              >
+              <button key={cat.id} onClick={() => setFiltroMapa(cat.tipo)} style={{ padding: '6px 12px', borderRadius: '20px', border: `1px solid ${cat.cor}`, backgroundColor: filtroMapa === cat.tipo ? cat.cor : 'white', color: filtroMapa === cat.tipo ? 'white' : cat.cor, cursor: 'pointer', fontSize: '13px' }}>
                 {cat.nome.split(' ')[0]} 
               </button>
             ))}
           </div>
 
           <div className="map-container" style={{ height: '350px', width: '100%', zIndex: 0 }}>
-            <MapContainer center={[-29.168, -51.179]} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+            <MapContainer center={userLocation} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+              <ChangeView center={userLocation} />
               <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              
               {marcadoresFiltrados.map((marcador) => (
                 <Marker key={marcador.id} position={marcador.pos} icon={marcador.icon}>
                   <Popup>
@@ -659,17 +629,7 @@ function App() {
                       <span style={{ fontSize: '13px', color: '#555' }}>{marcador.desc}</span>
                       <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e4e4e7', paddingTop: '10px' }}>
                         <span style={{ fontSize: '12px', color: '#666', fontWeight: 'bold' }}>{marcador.apoios} apoios</span>
-                        
-                        <button 
-                          onClick={() => handleApoiar(marcador.id)}
-                          disabled={marcador.apoiado}
-                          style={{
-                            backgroundColor: marcador.apoiado ? '#e4e4e7' : '#16a34a',
-                            color: marcador.apoiado ? '#888' : 'white',
-                            border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: marcador.apoiado ? 'default' : 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s'
-                          }}
-                        >
+                        <button onClick={() => handleApoiar(marcador.id)} disabled={marcador.apoiado} style={{ backgroundColor: marcador.apoiado ? '#e4e4e7' : '#16a34a', color: marcador.apoiado ? '#888' : 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: marcador.apoiado ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s' }}>
                           <FaThumbsUp /> {marcador.apoiado ? 'Apoiado' : 'Apoiar'}
                         </button>
                       </div>
@@ -682,9 +642,7 @@ function App() {
 
           <div className="map-legend">
             {categoriasAdmin.map(cat => (
-              <span key={cat.id}>
-                <FaMapMarkerAlt style={{color: cat.cor}} /> {cat.nome.split(' ')[0]}
-              </span>
+              <span key={cat.id}><FaMapMarkerAlt style={{color: cat.cor}} /> {cat.nome.split(' ')[0]}</span>
             ))}
           </div>
         </div>
@@ -692,6 +650,7 @@ function App() {
     );
   }
 
+  // --- TELA CADASTRO ---
   if (telaAtual === 'cadastro') {
     return (
       <div className="login-container">
@@ -715,6 +674,7 @@ function App() {
     );
   }
 
+  // --- TELA LOGIN (DEFAULT) ---
   return (
     <div className="login-container">
       <div className="login-box">
